@@ -1,7 +1,7 @@
 {
-  "name": "tulis-menfess",
+  "name": "myorder",
   "version": "1.1.0",
-  "description": "Anonymous Confession Wall",
+  "description": "Fast Food Ordering Application",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
