@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>MyOrder - Fast Food Ordering</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+    }
+
+    header {
+      background: #d32f2f;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #1e3c72;
+    }
+
+    form {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    select, input {
+      padding: 10px;
+      width: 220px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .btn-primary {
+      background: #d32f2f;
+      color: white;
+    }
+
+    .btn-edit {
+      background: #fbc02d;
+      margin-right: 5px;
+    }
+
+    .btn-delete {
+      background: #e53935;
+      color: white;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th {
+      background: #1e3c72;
+      color: white;
+      padding: 10px;
+    }
+
+    td {
+      padding: 10px;
+      text-align: center;
+      background: #fafafa;
+    }
+
+    footer {
+      background: #1e3c72;
+      color: white;
+      text-align: center;
+      padding: 15px;
+      margin-top: 50px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  🍔 MyOrder <br />
+  <small style="font-size:14px">Fast Food Ordering System</small>
+</header>
+
+<div class="container">
+
+  <!-- FORM ORDER -->
+  <div class="card">
+    <h2>Tambah Pesanan</h2>
+
+    <form id="orderForm">
+      <select id="menuSelect" required></select>
+      <input type="number" id="quantity" placeholder="Quantity" min="1" required />
+      <button class="btn-primary" type="submit" id="submitBtn">
+        Tambah Pesanan
+      </button>
+    </form>
+  </div>
+
+  <!-- LIST ORDER -->
+  <div class="card">
+    <h2>Daftar Pesanan</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Menu</th>
+          <th>Qty</th>
+          <th>Total</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="ordersTable"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<footer>
+  © 2026 MyOrder | Fast Food App
+</footer>
+
+<script>
+/* ===============================
+   GLOBAL STATE
+================================ */
+const API = "http://localhost:2581";
+let editingOrderId = null;
+
+/* ===============================
+   LOAD MENUS
+================================ */
+async function loadMenus() {
+  const res = await fetch(API + "/menus");
+  const menus = await res.json();
+
+  const select = document.getElementById("menuSelect");
+  select.innerHTML = "";
+
+  menus.forEach(menu => {
+    const option = document.createElement("option");
+    option.value = menu.id;
+    option.textContent = `${menu.name} - Rp ${menu.price}`;
+    select.appendChild(option);
+  });
+}
+
+/* ===============================
+   LOAD ORDERS
+================================ */
+async function loadOrders() {
+  const res = await fetch(API + "/orders");
+  const orders = await res.json();
+
+  const table = document.getElementById("ordersTable");
+  table.innerHTML = "";
+
+  orders.forEach(o => {
+    table.innerHTML += `
+      <tr>
+        <td>${o.menu_name}</td>
+        <td>${o.quantity}</td>
+        <td>Rp ${o.total_price}</td>
+        <td>
+          <button class="btn-edit"
+            onclick="startEditOrder(${o.id}, ${o.menu_id}, ${o.quantity})">
+            Edit
+          </button>
+          <button class="btn-delete"
+            onclick="deleteOrder(${o.id})">
+            Hapus
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+/* ===============================
+   CREATE / UPDATE ORDER
+================================ */
+document.getElementById("orderForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const menu_id = document.getElementById("menuSelect").value;
+  const quantity = document.getElementById("quantity").value;
+
+  if (editingOrderId) {
+    // UPDATE
+    await fetch(API + "/orders/" + editingOrderId, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quantity })
+    });
+
+    editingOrderId = null;
+    document.getElementById("submitBtn").textContent = "Tambah Pesanan";
+  } else {
+    // CREATE
+    await fetch(API + "/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ menu_id, quantity })
+    });
+  }
+
+  e.target.reset();
+  loadOrders();
+});
+
+/* ===============================
+   START EDIT
+================================ */
+function startEditOrder(id, menu_id, quantity) {
+  editingOrderId = id;
+
+  document.getElementById("menuSelect").value = menu_id;
+  document.getElementById("quantity").value = quantity;
+  document.getElementById("submitBtn").textContent = "Update Pesanan";
+}
+
+/* ===============================
+   DELETE ORDER
+================================ */
+async function deleteOrder(id) {
+  await fetch(API + "/orders/" + id, { method: "DELETE" });
+  loadOrders();
+}
+
+/* ===============================
+   INIT
+================================ */
+loadMenus();
+loadOrders();
+</script>
+
+</body>
+</html>
